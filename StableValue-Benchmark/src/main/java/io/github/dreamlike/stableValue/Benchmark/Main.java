@@ -1,11 +1,11 @@
-package io.github.dreamlike;
+package io.github.dreamlike.stableValue.Benchmark;
 
 import io.github.dreamlike.stableValue.StableValue;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
 import java.io.IOException;
-import java.lang.foreign.MemorySegment;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.Supplier;
@@ -17,14 +17,33 @@ import java.util.function.Supplier;
 public class Main {
     private static final StableValue<String> value = StableValue.of(() -> {
         LockSupport.parkNanos(TimeUnit.SECONDS.toNanos(1));
-        return "2023";
+        return UUID.randomUUID().toString();
     });
 
     private static final StableValue<String> dcl = new DCLStableValue<>(() -> {
         LockSupport.parkNanos(TimeUnit.SECONDS.toNanos(1));
-        return "2023";
+        return UUID.randomUUID().toString();
     });
 
+    private static final StableValue<String> classInit = new StableValue<String>() {
+        static class InternalClass {
+            private static final String CACHE;
+
+            static {
+                LockSupport.parkNanos(TimeUnit.SECONDS.toNanos(1));
+                CACHE = UUID.randomUUID().toString();
+            }
+        }
+
+        @Override
+        public String get() {
+            return InternalClass.CACHE;
+        }
+    };
+
+    private static final String plain = UUID.randomUUID().toString();
+
+    private static final StableValue<String> constant = () -> plain;
 
     public static void main(String[] args) throws IOException {
         org.openjdk.jmh.Main.main(args);
@@ -44,6 +63,19 @@ public class Main {
         }
     }
 
+    @Benchmark
+    public void testClassInit(Blackhole bh) {
+        for (int i = 0; i < 500_00; i++) {
+            bh.consume(classInit.get());
+        }
+    }
+
+    @Benchmark
+    public void testPlain(Blackhole bh) {
+        for (int i = 0; i < 500_00; i++) {
+            bh.consume(constant.get());
+        }
+    }
 
     public static class DCLStableValue<T> implements StableValue<T> {
         public final Supplier<T> factory;

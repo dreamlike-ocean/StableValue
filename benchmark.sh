@@ -1,0 +1,1 @@
+ mvn clean package -am -pl StableValue-Benchmark && java --enable-preview -jar StableValue-Benchmark/target/StableValue-Benchmark-fat.jar
