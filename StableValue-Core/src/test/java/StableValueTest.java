@@ -21,6 +21,11 @@ public class StableValueTest {
             return UUID.randomUUID().toString();
         });
         Assert.assertEquals(value.get(), value.get());
+        StableValue.setMode(true);
+        StableValue<String> hidden = StableValue.of(() -> {
+            return UUID.randomUUID().toString();
+        });
+        Assert.assertEquals(value.get(), value.get());
     }
 
     @Test

@@ -22,6 +22,8 @@ class StableValueGenerator {
 
     private static final AtomicInteger count = new AtomicInteger();
 
+    public static boolean enable_hidden = false;
+
     public static <T> StableValue<T> of(Supplier<T> factory) {
         String className = StableValue.class.getName() + "Impl" + count.getAndIncrement();
 
@@ -59,7 +61,7 @@ class StableValueGenerator {
         });
         MethodHandles.Lookup lookup = MethodHandles.lookup();
         try {
-            Class<?> aClass = lookup.defineClass(classByteCode);
+            Class<?> aClass = enable_hidden ? lookup.defineHiddenClass(classByteCode, true, MethodHandles.Lookup.ClassOption.STRONG).lookupClass() : lookup.defineClass(classByteCode);
             aClass.getField(FACTORY_FIELD_NAME).set(null, factory);
             return ((StableValue) aClass.newInstance());
         } catch (IllegalAccessException | InstantiationException | NoSuchFieldException e) {

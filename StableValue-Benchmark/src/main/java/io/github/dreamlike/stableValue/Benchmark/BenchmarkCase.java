@@ -26,6 +26,20 @@ public class BenchmarkCase {
         return UUID.randomUUID().toString();
     });
 
+    private static final StableValue<String> valueHidden = new Supplier<StableValue<String>>() {
+
+        @Override
+        public StableValue<String> get() {
+            StableValue.setMode(true);
+            StableValue<String> stableValue = StableValue.of(() -> {
+                LockSupport.parkNanos(TimeUnit.SECONDS.toNanos(1));
+                return UUID.randomUUID().toString();
+            });
+            StableValue.setMode(false);
+            return stableValue;
+        }
+    }.get();
+
     private static final List<StableValue<String>> Stable_VALUE_LIST = List.of(
             StableValue.of(() -> {
                 LockSupport.parkNanos(TimeUnit.SECONDS.toNanos(1));
@@ -109,6 +123,14 @@ public class BenchmarkCase {
             bh.consume(value.get());
         }
     }
+
+    @Benchmark
+    public void testIndyStabValueHidden(Blackhole bh) {
+        for (int i = 0; i < 500_00; i++) {
+            bh.consume(valueHidden.get());
+        }
+    }
+
 
     @Benchmark
     public void testDCL(Blackhole bh) {

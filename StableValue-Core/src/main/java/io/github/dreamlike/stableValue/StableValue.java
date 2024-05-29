@@ -12,4 +12,10 @@ public interface StableValue<T> {
     public static <T> StableValue<T> of(Supplier<T> factory) {
         return StableValueGenerator.of(factory);
     }
+
+    static boolean setMode(boolean enableHidden) {
+        boolean old = StableValueGenerator.enable_hidden;
+        StableValueGenerator.enable_hidden = enableHidden;
+        return old;
+    }
 }
