@@ -17,15 +17,12 @@ public class StableValueTest {
 
     @Test
     public void testStableValue() {
-        StableValue<String> value = StableValue.of(() -> {
-            return UUID.randomUUID().toString();
-        });
+        StableValue<String> value = StableValue.of(() -> UUID.randomUUID().toString());
         Assert.assertEquals(value.get(), value.get());
         StableValue.setMode(true);
-        StableValue<String> hidden = StableValue.of(() -> {
-            return UUID.randomUUID().toString();
-        });
-        Assert.assertEquals(value.get(), value.get());
+        StableValue<String> hidden = StableValue.of(() -> UUID.randomUUID().toString());
+        Assert.assertEquals(hidden.get(), hidden.get());
+        Assert.assertTrue(hidden.getClass().isHidden());
     }
 
     @Test
