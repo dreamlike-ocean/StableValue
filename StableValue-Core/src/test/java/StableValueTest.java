@@ -3,7 +3,6 @@ import io.github.dreamlike.stableValue.StableValue;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.lang.invoke.CallSite;
 import java.lang.invoke.LambdaConversionException;
 import java.lang.invoke.LambdaMetafactory;
 import java.lang.invoke.MethodHandle;
@@ -11,7 +10,6 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.util.UUID;
 import java.util.function.Function;
-import java.util.function.IntFunction;
 
 public class StableValueTest {
 
@@ -19,10 +17,14 @@ public class StableValueTest {
     public void testStableValue() {
         StableValue<String> value = StableValue.of(() -> UUID.randomUUID().toString());
         Assert.assertEquals(value.get(), value.get());
-        StableValue.setMode(true);
+        StableValue.setHiddenMode(true);
         StableValue<String> hidden = StableValue.of(() -> UUID.randomUUID().toString());
         Assert.assertEquals(hidden.get(), hidden.get());
         Assert.assertTrue(hidden.getClass().isHidden());
+
+        StableValue.setBackend(StableValue.BackEnd.CONDY);
+        StableValue<String> condy = StableValue.of(() -> UUID.randomUUID().toString());
+        Assert.assertEquals(condy.get(), condy.get());
     }
 
     @Test
