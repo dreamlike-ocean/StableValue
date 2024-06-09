@@ -4,6 +4,8 @@ import io.github.dreamlike.stableValue.StableValue;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
@@ -22,6 +24,11 @@ public class StableValueBenchmarkCase {
     private static final StableValue<String> valueHidden;
 
     private static final StableValue<String> valueCondy;
+
+    private static final StableValueBenchmarkCase.TryDCLStableValue<String> tryStableValue = new StableValueBenchmarkCase.TryDCLStableValue<>(() -> {
+        LockSupport.parkNanos(TimeUnit.SECONDS.toNanos(1));
+        return UUID.randomUUID().toString();
+    });
 
     static {
         StableValue.setHiddenMode(true);
@@ -76,6 +83,14 @@ public class StableValueBenchmarkCase {
             bh.consume(value.get());
         }
     }
+
+    @Benchmark
+    public void testTryStabValue(Blackhole bh) {
+        for (int i = 0; i < 500_00; i++) {
+            bh.consume(tryStableValue.get());
+        }
+    }
+
 
     @Benchmark
     public void testIndyStabValueHidden(Blackhole bh) {
@@ -136,6 +151,46 @@ public class StableValueBenchmarkCase {
                     return cache;
                 }
                 return cache = factory.get();
+            }
+        }
+    }
+
+
+    public static class TryDCLStableValue<T> implements StableValue<T> {
+        private static final VarHandle HANDLE;
+
+        public final Supplier<T> factory;
+
+        private T cache;
+
+        public TryDCLStableValue(Supplier<T> factory) {
+            this.factory = factory;
+        }
+
+
+        @Override
+        public T get() {
+            T res = (T) HANDLE.get(this);
+            if (res != null) {
+                return res;
+            }
+
+            synchronized (this) {
+                res = (T) HANDLE.getVolatile(this);
+                if (res != null) {
+                    return res;
+                }
+                res = factory.get();
+                HANDLE.setVolatile(this, res);
+                return res;
+            }
+        }
+
+        static {
+            try {
+                HANDLE = MethodHandles.lookup().findVarHandle(TryDCLStableValue.class, "cache", Object.class);
+            } catch (NoSuchFieldException | IllegalAccessException e) {
+                throw new RuntimeException(e);
             }
         }
     }
