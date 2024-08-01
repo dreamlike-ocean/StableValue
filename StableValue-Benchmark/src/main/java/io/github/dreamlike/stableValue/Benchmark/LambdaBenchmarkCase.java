@@ -5,10 +5,14 @@ import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
 import java.lang.invoke.*;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
+@State(Scope.Benchmark)
 @Warmup(iterations = 5, time = 200, timeUnit = TimeUnit.MICROSECONDS)
 @BenchmarkMode(Mode.Throughput)
 @Threads(value = 5)
@@ -17,10 +21,17 @@ public class LambdaBenchmarkCase {
 
     private static final String baseSTR = UUID.randomUUID().toString().repeat(1024);
 
-    public static final Function<String, Integer> jdkLambda = (s1) -> Integer.valueOf(s1.length() + baseSTR.length());
+    private static final List<String> params;
+
+    public static final Function<String, Integer> jdkLambda = (s1) -> s1.length() + baseSTR.length();
     public static final Function<String, Integer> directLambda;
 
     public static final Function<String, Integer> jdkMethodHandleProxy;
+
+    public static final Function<String, Integer> jdkMethodHandleWorkAround;
+    
+    @Param({"10", "100", "1000"})
+    public int COUNT;
 
     static {
         try {
@@ -33,33 +44,67 @@ public class LambdaBenchmarkCase {
             directLambda = DirectLambdaFactory.generate(Function.class,
                     realMh
             );
+
             jdkMethodHandleProxy = MethodHandleProxies.asInterfaceInstance(Function.class, realMh);
-        } catch (NoSuchMethodException | IllegalAccessException e) {
+
+            jdkMethodHandleWorkAround = (Function<String, Integer>) LambdaMetafactory
+                    .metafactory(
+                            MethodHandles.lookup(),
+                            "apply",
+                            MethodType.methodType(Function.class, MethodHandle.class),
+                            MethodType.methodType(Object.class, Object.class),
+                            MethodHandles.exactInvoker(realMh.type()),
+                           realMh.type()
+                    ).getTarget()
+                    .invokeExact(realMh);
+
+            params = IntStream.range(0, 100)
+                    .mapToObj(s -> UUID.randomUUID().toString())
+                    .toList();
+        } catch (Throwable e) {
             throw new RuntimeException(e);
         }
     }
 
     @Benchmark
     public void testJDKLambda(Blackhole bh) {
-        for (int i = 0; i < 500_00; i++) {
-            bh.consume(jdkLambda.apply("123"));
+        for (int i = 0; i < COUNT; i++) {
+            for (String param : params) {
+                bh.consume(jdkLambda.apply(param));
+            }
+
         }
     }
 
     @Benchmark
     public void testDirectLambda(Blackhole bh) {
-        for (int i = 0; i < 500_00; i++) {
-            bh.consume(directLambda.apply("123"));
+        for (int i = 0; i < COUNT; i++) {
+            for (String param : params) {
+                bh.consume(directLambda.apply(param));
+            }
         }
     }
+
 
     @Benchmark
     public void testjdkMethodHandleProxy(Blackhole bh) {
-        for (int i = 0; i < 500_00; i++) {
-            bh.consume(jdkMethodHandleProxy.apply("123"));
+        for (int i = 0; i < COUNT; i++) {
+            for (String param : params) {
+                bh.consume(jdkMethodHandleProxy.apply(param));
+            }
         }
     }
 
+
+
+    @Benchmark
+    public void testjdkexactInvoker(Blackhole bh) {
+        for (int i = 0; i < COUNT; i++) {
+            for (String param : params) {
+                bh.consume(jdkMethodHandleWorkAround.apply(param));
+            }
+        }
+    }
 
 
     public static int testMethod(String s1, String s2) {
