@@ -46,6 +46,7 @@ public class FeatureSwitch<T> {
     public void switchTarget(MethodHandle methodHandle) {
         if (methodType.equals(methodHandle.type())) {
             callSite.setTarget(methodHandle);
+            MutableCallSite.syncAll(new MutableCallSite[] { callSite });
             return;
         }
         throw new IllegalArgumentException("Method handle type must match feature switch type");
