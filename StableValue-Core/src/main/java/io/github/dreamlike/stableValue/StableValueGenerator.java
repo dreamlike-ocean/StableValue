@@ -2,17 +2,12 @@ package io.github.dreamlike.stableValue;
 
 import java.lang.classfile.AccessFlags;
 import java.lang.classfile.ClassFile;
-import java.lang.classfile.TypeKind;
-import java.lang.classfile.constantpool.ConstantDynamicEntry;
-import java.lang.classfile.constantpool.ConstantPoolBuilder;
 import java.lang.constant.*;
 import java.lang.invoke.ConstantCallSite;
-import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.AccessFlag;
 import java.lang.reflect.Method;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
@@ -21,17 +16,23 @@ import static java.lang.constant.ConstantDescs.*;
 
 class StableValueGenerator {
 
-    private static final ClassFile classFile = ClassFile.of();
-
     static final String FACTORY_FIELD_NAME = "FACTORY_FIELD";
-
+    private static final ClassFile classFile = ClassFile.of();
     private static final AtomicInteger count = new AtomicInteger();
-
+    private static final MethodTypeDesc INDY_MTD;
     public static boolean enable_hidden = false;
-
     public static boolean enable_condy = false;
 
-    private static final MethodTypeDesc INDY_MTD;
+    static {
+        try {
+            Method indyFactory = StableValueGenerator.class.getMethod("indyFactory", MethodHandles.Lookup.class, String.class, MethodType.class, Object[].class);
+            INDY_MTD = MethodType.methodType(indyFactory.getReturnType(), indyFactory.getParameterTypes())
+                    .describeConstable().get();
+
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     public static <T> StableValue<T> of(Supplier<T> factory) {
         String className = StableValue.class.getName() + "Impl" + count.getAndIncrement();
@@ -53,15 +54,14 @@ class StableValueGenerator {
                     AccessFlags.ofMethod(AccessFlag.PUBLIC, AccessFlag.SYNTHETIC).flagsMask(),
                     it -> {
                         if (enable_condy) {
-                            ConstantPoolBuilder poolBuilder = it.constantPool();
-                            ConstantDynamicEntry constantDynamicEntry = poolBuilder.constantDynamicEntry(DynamicConstantDesc.of(
-                                    ofConstantBootstrap(StableValueGenerator.class.describeConstable().get(), "condyFactory", Object.class.describeConstable().get())
-                            ));
 
-                            it.constantInstruction(constantDynamicEntry.constantValue());
+                            it.loadConstant((
+                                    DynamicConstantDesc.of(
+                                            ofConstantBootstrap(StableValueGenerator.class.describeConstable().get(), "condyFactory", Object.class.describeConstable().get())
+                                    )));
 
                         } else {
-                            it.invokeDynamicInstruction(
+                            it.invokedynamic(
                                     DynamicCallSiteDesc.of(
                                             MethodHandleDesc.ofMethod(
                                                     DirectMethodHandleDesc.Kind.STATIC, StableValueGenerator.class.describeConstable().get(), "indyFactory",
@@ -72,7 +72,7 @@ class StableValueGenerator {
                                     )
                             );
                         }
-                        it.returnInstruction(TypeKind.from(Object.class));
+                        it.areturn();
                     }
             );
         });
@@ -106,21 +106,5 @@ class StableValueGenerator {
                 : (Supplier) aClass.getField(FACTORY_FIELD_NAME).get(null);
         ;
         return supplier.get();
-    }
-
-    public static ConstantCallSite indyLambdaFactory(MethodHandles.Lookup lookup, String name, MethodType type, Object... args) throws NoSuchFieldException, IllegalAccessException {
-        MethodHandle supplier = (MethodHandle) lookup.findStaticVarHandle(lookup.lookupClass(), DirectLambdaFactory.MH_FIELD_NAME, MethodHandle.class).get();
-        return new ConstantCallSite(supplier);
-    }
-
-    static {
-        try {
-            Method indyFactory = StableValueGenerator.class.getMethod("indyFactory", MethodHandles.Lookup.class, String.class, MethodType.class, Object[].class);
-            INDY_MTD = MethodType.methodType(indyFactory.getReturnType(), indyFactory.getParameterTypes())
-                    .describeConstable().get();
-
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        }
     }
 }
