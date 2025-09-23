@@ -30,12 +30,13 @@ sh ./benchmark.sh
 
 ```text
 并发线程数目为5
-Benchmark                                                               Mode    Cnt        Score       Error  Units
-stableValue.Benchmark.StableValueBenchmarkCase.testClassInit            thrpt   10  1998369.352 ± 32731.935  ops/s
-stableValue.Benchmark.StableValueBenchmarkCase.testDCL                  thrpt   10   472392.857 ± 10495.215  ops/s
-stableValue.Benchmark.StableValueBenchmarkCase.testIndyStabValue        thrpt   10  1996429.795 ± 32976.993  ops/s
-stableValue.Benchmark.StableValueBenchmarkCase.testIndyStabValueCody    thrpt   10  1998819.221 ± 29030.771  ops/s
-stableValue.Benchmark.StableValueBenchmarkCase.testIndyStabValueHidden  thrpt   10  2006979.049 ± 21622.126  ops/s
-stableValue.Benchmark.StableValueBenchmarkCase.testPlain                thrpt   10  2015192.566 ± 16183.806  ops/s
+stableValue.Benchmark.StableValueBenchmarkCase.testClassInit            thrpt   10  2900813.932 ± 26353.332  ops/s
+stableValue.Benchmark.StableValueBenchmarkCase.testDCL                  thrpt   10   210772.581 ±  2527.113  ops/s
+stableValue.Benchmark.StableValueBenchmarkCase.testIndyStabValue        thrpt   10  2902634.437 ± 25928.781  ops/s
+stableValue.Benchmark.StableValueBenchmarkCase.testIndyStabValueCody    thrpt   10  2902663.558 ± 23987.111  ops/s
+stableValue.Benchmark.StableValueBenchmarkCase.testIndyStabValueHidden  thrpt   10  2900383.951 ± 24068.082  ops/s
+stableValue.Benchmark.StableValueBenchmarkCase.testJdkStableValue       thrpt   10  2892260.871 ± 45261.131  ops/s
+stableValue.Benchmark.StableValueBenchmarkCase.testPlain                thrpt   10  2918079.807 ±  4314.742  ops/s
+
 
 ```
