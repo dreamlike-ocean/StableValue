@@ -39,19 +39,19 @@ class StableValueGenerator {
         boolean enableHidden = enable_hidden;
         byte[] classByteCode = classFile.build(ClassDesc.of(className), cb -> {
             cb.withInterfaceSymbols(ClassDesc.of(StableValue.class.getName()));
-            cb.withMethodBody(ConstantDescs.INIT_NAME, ConstantDescs.MTD_void, AccessFlags.ofMethod(AccessFlag.PUBLIC).flagsMask(), it -> {
+            cb.withMethodBody(ConstantDescs.INIT_NAME, ConstantDescs.MTD_void, ClassFile.ACC_PUBLIC, it -> {
                 it.aload(0);
                 it.invokespecial(CD_Object, INIT_NAME, MTD_void);
                 it.return_();
             });
             if (!enableHidden) {
-                cb.withField(FACTORY_FIELD_NAME, ClassDesc.of(Supplier.class.getName()), AccessFlags.ofField(AccessFlag.PUBLIC, AccessFlag.STATIC, AccessFlag.SYNTHETIC).flagsMask());
+                cb.withField(FACTORY_FIELD_NAME, ClassDesc.of(Supplier.class.getName()), ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC | ClassFile.ACC_SYNTHETIC);
             }
 
             cb.withMethodBody(
                     "get",
                     MethodTypeDesc.of(ClassDesc.of(Object.class.getName())),
-                    AccessFlags.ofMethod(AccessFlag.PUBLIC, AccessFlag.SYNTHETIC).flagsMask(),
+                    ClassFile.ACC_PUBLIC | ClassFile.ACC_SYNTHETIC,
                     it -> {
                         if (enable_condy) {
 
